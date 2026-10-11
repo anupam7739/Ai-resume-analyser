@@ -115,7 +115,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
       },
     });
   };
-
+ 
 
   const checkAuthStatus = async (): Promise<boolean> => {
     const puter = getPuter();
@@ -351,7 +351,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
           ],
         },
       ],
-      { model: "claude-sonnet-4" }
+      { model: "Claude Sonnet 5.5 " }
     ) as Promise<AIResponse | undefined>;
   };
 

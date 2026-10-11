@@ -18,7 +18,10 @@ const Auth = () => {
   },[auth.isAuthenticated, next])
 
   return (
-    <main className = "bg-[url('/images/bg-auth.svg')] bg-cover min-h-screen flex items-center justify-center">
+    <main
+      className="bg-cover min-h-screen flex items-center justify-center"
+      style={{ backgroundImage: 'url("/images/bg-auth%20(1).svg")' }}
+    >
         <div className="gradient-border shadow-lg">
             <section className="flex flex-col gap-8 bg-white rounded-2xl p-10">
                <div className="flex flex-col items-center gap-2 text-center">
@@ -32,7 +35,7 @@ const Auth = () => {
                   </button>
                 ) : (
                    <>
-                     {auth.isAuthenticted ? (
+                     {auth.isAuthenticated ? (
                       <button className="auth-button" onClick={auth.signOut}>
                         <p>Log Out</p>
                       </button>
