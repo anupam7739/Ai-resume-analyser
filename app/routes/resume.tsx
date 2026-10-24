@@ -1,7 +1,9 @@
-import { Link, useParams } from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import { usePuterStore } from "~/lib/puter";
-import ScoreCircle from "~/components/ScoreCircle";
+import Summary from "~/components/Summary"
+import ATS from "~/components/ATS"
+import Details from "~/components/Details"
 
 export const meta = () => ([
     {title: 'Resumind | Review'},
@@ -15,6 +17,7 @@ const Resume = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [resumeUrl, setResumeUrl] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,9 +39,7 @@ const Resume = () => {
         const data = JSON.parse(resume) as {
           resumePath: string;
           imagePath: string;
-          feedback: Feedback;
         };
-        if (!data.feedback) throw new Error("Resume feedback not found.");
         const [resumeBlob, imageBlob] = await Promise.all([
           fs.read(data.resumePath),
           fs.read(data.imagePath),
@@ -61,7 +62,6 @@ const Resume = () => {
 
         setResumeUrl(pdfUrl);
         setImageUrl(previewUrl);
-        setFeedback(data.feedback);
       } catch (loadError) {
         if (isCurrent) {
           setError(
@@ -112,40 +112,12 @@ const Resume = () => {
               <h2 className="text-4xl !text-black font-bold">Resume Review</h2>
               {feedback ? (
                 <div className="flex flex-col gap-8 animate-in fade-in duration-1000">
-                  <div className="flex items-center gap-4">
-                    <ScoreCircle score={feedback.overallScore} />
-                    <h3 className="text-2xl font-semibold">
-                      Overall score: {feedback.overallScore}/100
-                    </h3>
-                  </div>
-                  {(
-                    [
-                      ["ATS", feedback.ATS],
-                      ["Tone and style", feedback.toneAndStyle],
-                      ["Content", feedback.content],
-                      ["Structure", feedback.structure],
-                      ["Skills", feedback.skills],
-                    ] as const
-                  ).map(([title, category]) => (
-                    <article key={title} className="flex flex-col gap-3">
-                      <h3 className="text-xl font-semibold">
-                        {title}: {category.score}/100
-                      </h3>
-                      <ul className="flex flex-col gap-3">
-                        {category.tips.map((tip, index) => (
-                          <li key={`${title}-${index}`}>
-                            <p className="font-medium">{tip.tip}</p>
-                            {"explanation" in tip && (
-                              <p className="text-gray-600">{tip.explanation}</p>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </article>
-                  ))}
+                   <Summary feedback={feedback} />
+                   <ATS score={feedback.ATS.score || 0} suggestions= {feedback.ATS.tips || []} />
+                   <Details feedback= {feedback} />
                 </div>
               ) : (
-                <p role="alert">Resume feedback is unavailable.</p>
+                <img src="/images/resume-scan-2.gif" className="w-full " />
               )}
             </section>
         </div>
