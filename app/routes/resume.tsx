@@ -1,9 +1,48 @@
-import { Link, useParams, useNavigate } from "react-router";
+import { Link, useParams } from "react-router";
 import { useEffect, useState } from "react";
 import { usePuterStore } from "~/lib/puter";
 import Summary from "~/components/Summary"
 import ATS from "~/components/ATS"
 import Details from "~/components/Details"
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isTip = (value: unknown): value is Feedback["ATS"]["tips"][number] =>
+  isRecord(value) &&
+  (value.type === "good" || value.type === "improve") &&
+  typeof value.tip === "string";
+
+const isCategoryTip = (
+  value: unknown
+): value is Feedback["toneAndStyle"]["tips"][number] =>
+  isRecord(value) &&
+  (value.type === "good" || value.type === "improve") &&
+  typeof value.tip === "string" &&
+  typeof value.explanation === "string";
+
+const isCategoryFeedback = (
+  value: unknown
+): value is Feedback["toneAndStyle"] =>
+  isRecord(value) &&
+  typeof value.score === "number" &&
+  Number.isFinite(value.score) &&
+  Array.isArray(value.tips) &&
+  value.tips.every(isCategoryTip);
+
+const isFeedback = (value: unknown): value is Feedback =>
+  isRecord(value) &&
+  typeof value.overallScore === "number" &&
+  Number.isFinite(value.overallScore) &&
+  isRecord(value.ATS) &&
+  typeof value.ATS.score === "number" &&
+  Number.isFinite(value.ATS.score) &&
+  Array.isArray(value.ATS.tips) &&
+  value.ATS.tips.every(isTip) &&
+  isCategoryFeedback(value.toneAndStyle) &&
+  isCategoryFeedback(value.content) &&
+  isCategoryFeedback(value.structure) &&
+  isCategoryFeedback(value.skills);
 
 export const meta = () => ([
     {title: 'Resumind | Review'},
@@ -17,7 +56,6 @@ const Resume = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [resumeUrl, setResumeUrl] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,10 +74,20 @@ const Resume = () => {
         const resume = await kv.get(`resume:${id}`);
         if (!resume) throw new Error("Resume not found.");
 
-        const data = JSON.parse(resume) as {
-          resumePath: string;
-          imagePath: string;
-        };
+        const data: unknown = JSON.parse(resume);
+        if (
+          !isRecord(data) ||
+          typeof data.resumePath !== "string" ||
+          typeof data.imagePath !== "string"
+        ) {
+          throw new Error("Saved resume data is invalid.");
+        }
+        if (!isFeedback(data.feedback)) {
+          throw new Error(
+            "Resume analysis is missing or invalid. Please upload and analyze the resume again."
+          );
+        }
+
         const [resumeBlob, imageBlob] = await Promise.all([
           fs.read(data.resumePath),
           fs.read(data.imagePath),
@@ -62,6 +110,7 @@ const Resume = () => {
 
         setResumeUrl(pdfUrl);
         setImageUrl(previewUrl);
+        setFeedback(data.feedback);
       } catch (loadError) {
         if (isCurrent) {
           setError(
@@ -110,14 +159,18 @@ const Resume = () => {
             </section>
             <section className="feedback-section">
               <h2 className="text-4xl !text-black font-bold">Resume Review</h2>
-              {feedback ? (
+              {isLoading ? (
+                <p>Loading resume analysis...</p>
+              ) : error ? (
+                <p role="alert">{error}</p>
+              ) : feedback ? (
                 <div className="flex flex-col gap-8 animate-in fade-in duration-1000">
                    <Summary feedback={feedback} />
                    <ATS score={feedback.ATS.score || 0} suggestions= {feedback.ATS.tips || []} />
                    <Details feedback= {feedback} />
                 </div>
               ) : (
-                <img src="/images/resume-scan-2.gif" className="w-full " />
+                <p role="alert">Resume analysis is unavailable.</p>
               )}
             </section>
         </div>

@@ -1,3 +1,10 @@
+import type {ClassValue} from "clsx";
+import { clsx } from "clsx";
+import {twMerge} from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx (inputs))
+}
 export function formatSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) {
     throw new RangeError("Size must be a finite, non-negative number");
